@@ -1078,6 +1078,53 @@
     ]);
     populateCalcSelect();
   }
+
+  // リスト.pdf から読み込んだ品目を追加（未登録のもののみ）
+  (function addPdfItems() {
+    const items = [
+      { id:'pdf01', name:'Zボルドー', category:'殺菌剤', method:'散布', dilMin:400, dilMax:600, dilStd:500, spray:200, sprayUnit:'L', crops:'野菜類、果樹、稲', timing:'発病初期から定期散布', notes:'銅製剤。高温時・乾燥時の散布は薬害が出る場合がある' },
+      { id:'pdf02', name:'ジーファイン', category:'殺菌剤', method:'散布', dilMin:500, dilMax:1000, dilStd:500, spray:150, sprayUnit:'L', crops:'野菜類、果樹', timing:'発病初期から定期散布', notes:'' },
+      { id:'pdf03', name:'テーク', category:'殺菌剤', method:'散布', dilMin:500, dilMax:1000, dilStd:750, spray:150, sprayUnit:'L', crops:'野菜類、果樹', timing:'発病初期', notes:'使用前にラベルを確認してください' },
+      { id:'pdf04', name:'リドミルゴールドMZ', category:'殺菌剤', method:'散布', dilMin:400, dilMax:800, dilStd:500, spray:200, sprayUnit:'L', crops:'トマト、きゅうり、ブドウ', timing:'発病初期', notes:'メタラキシルM+マンゼブ。疫病・べと病に有効' },
+      { id:'pdf05', name:'リーフガード顆粒水和剤', category:'殺菌剤', method:'散布', dilMin:1000, dilMax:2000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発病初期から定期散布', notes:'' },
+      { id:'pdf06', name:'ジマンダイセン水和剤', category:'殺菌剤', method:'散布', dilMin:400, dilMax:600, dilStd:600, spray:200, sprayUnit:'L', crops:'野菜類、果樹、稲', timing:'発病初期から定期散布', notes:'マンゼブ（EBDC系）製剤' },
+      { id:'pdf07', name:'アルバリン', category:'殺虫剤', method:'散布', dilMin:2000, dilMax:4000, dilStd:4000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発生初期', notes:'ジノテフラン系。吸汁害虫・チョウ目害虫に有効' },
+      { id:'pdf08', name:'アファームエクセラ', category:'殺虫剤', method:'散布', dilMin:1000, dilMax:2000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発生初期', notes:'エマメクチン安息香酸塩系。チョウ目害虫に有効' },
+      { id:'pdf09', name:'アリエッティ水和剤', category:'殺菌剤', method:'散布', dilMin:500, dilMax:1000, dilStd:1000, spray:150, sprayUnit:'L', crops:'トマト、きゅうり、ブドウ', timing:'発病初期', notes:'ホセチル系。疫病・べと病に有効' },
+      { id:'pdf10', name:'シグナムWDZ', category:'殺菌剤', method:'散布', dilMin:1000, dilMax:2000, dilStd:1500, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発病初期から定期散布', notes:'ボスカリド+ピラクロストロビン' },
+      { id:'pdf11', name:'ベトファイター', category:'殺菌剤', method:'散布', dilMin:1000, dilMax:2000, dilStd:1500, spray:150, sprayUnit:'L', crops:'野菜類', timing:'発病初期', notes:'べと病対策' },
+      { id:'pdf12', name:'トルネードエースDF', category:'殺菌剤', method:'散布', dilMin:1000, dilMax:2000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発病初期', notes:'' },
+      { id:'pdf13', name:'カスミンボルド', category:'殺菌剤', method:'散布', dilMin:500, dilMax:1000, dilStd:1000, spray:200, sprayUnit:'L', crops:'稲、野菜類、果樹', timing:'発病初期', notes:'カスガマイシン+銅製剤' },
+      { id:'pdf14', name:'オロンディスウルトラSC', category:'殺菌剤', method:'散布', dilMin:2000, dilMax:4000, dilStd:4000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発病初期', notes:'オキサチアピプロリン系' },
+      { id:'pdf15', name:'ベジセイバー', category:'殺虫殺菌剤', method:'散布', dilMin:1000, dilMax:2000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類', timing:'発生・発病初期', notes:'' },
+      { id:'pdf16', name:'ジュリボ', category:'殺虫剤', method:'散布', dilMin:2000, dilMax:5000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発生初期', notes:'' },
+      { id:'pdf17', name:'レーバス', category:'殺菌剤', method:'散布', dilMin:1000, dilMax:2000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発病初期', notes:'フルキサピロキサド系' },
+      { id:'pdf18', name:'マッチ乳剤', category:'殺虫剤', method:'散布', dilMin:2000, dilMax:3000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類', timing:'発生初期', notes:'ルフェヌロン（IGR系）。幼虫に有効' },
+      { id:'pdf19', name:'カスケード乳剤', category:'殺虫剤', method:'散布', dilMin:1000, dilMax:2000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発生初期', notes:'フルフェノクスロン（IGR系）' },
+      { id:'pdf20', name:'グレージア乳剤', category:'殺虫剤', method:'散布', dilMin:2000, dilMax:4000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類', timing:'発生初期', notes:'アフィドピロペン系。アブラムシ類に有効' },
+      { id:'pdf21', name:'アベンジャー', category:'殺虫剤', method:'散布', dilMin:1000, dilMax:2000, dilStd:1000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発生初期', notes:'使用前にラベルを確認してください' },
+      { id:'pdf22', name:'ランマン', category:'殺菌剤', method:'散布', dilMin:1500, dilMax:2000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発病初期', notes:'シアゾファミド系。疫病・べと病に有効' },
+      { id:'pdf23', name:'アフェット', category:'殺菌剤', method:'散布', dilMin:2000, dilMax:4000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発病初期', notes:'フルチアニル系。うどんこ病に有効' },
+      { id:'pdf24', name:'ディアナ', category:'殺虫剤', method:'散布', dilMin:2500, dilMax:5000, dilStd:2500, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発生初期', notes:'スピネトラム系。チョウ目害虫に有効' },
+      { id:'pdf25', name:'バリダシン', category:'殺菌剤', method:'散布', dilMin:500, dilMax:1000, dilStd:1000, spray:200, sprayUnit:'L', crops:'稲、野菜類', timing:'発病初期', notes:'バリダマイシン系。紋枯病に有効' },
+      { id:'pdf26', name:'ロロックス', category:'除草剤', method:'土壌散布', dilMin:100, dilMax:200, dilStd:100, spray:100, sprayUnit:'L', crops:'畑地、樹園地', timing:'雑草発生前〜発生初期', notes:'ジウロン系。茎葉・土壌処理' },
+      { id:'pdf27', name:'タッチダウン', category:'除草剤', method:'茎葉散布', dilMin:25, dilMax:100, dilStd:50, spray:100, sprayUnit:'L', crops:'農耕地周辺、非農耕地', timing:'雑草生育期', notes:'グリホサート系。非選択性。作物への飛散注意' },
+      { id:'pdf28', name:'ラウンドアップ', category:'除草剤', method:'茎葉散布', dilMin:41, dilMax:167, dilStd:67, spray:100, sprayUnit:'L', crops:'農耕地周辺、非農耕地', timing:'雑草生育期', notes:'グリホサート系。非選択性。作物への飛散注意' },
+      { id:'pdf29', name:'ザクサ', category:'除草剤', method:'茎葉散布', dilMin:50, dilMax:100, dilStd:50, spray:100, sprayUnit:'L', crops:'農耕地周辺、非農耕地', timing:'雑草生育期', notes:'グルホシネートP系。非選択性。作物への飛散注意' },
+      { id:'pdf30', name:'サンフーロン', category:'除草剤', method:'茎葉散布', dilMin:50, dilMax:100, dilStd:67, spray:100, sprayUnit:'L', crops:'農耕地周辺、非農耕地', timing:'雑草生育期', notes:'グリホサート系ジェネリック。非選択性' },
+      { id:'pdf31', name:'ナブ乳剤', category:'除草剤', method:'茎葉散布', dilMin:100, dilMax:200, dilStd:100, spray:100, sprayUnit:'L', crops:'大豆、野菜類', timing:'イネ科雑草生育期', notes:'セトキシジム系。イネ科雑草専用除草剤' },
+      { id:'pdf32', name:'トレファノサイド', category:'除草剤', method:'土壌散布', dilMin:1, dilMax:1, dilStd:1, spray:10, sprayUnit:'L', crops:'野菜類、果樹', timing:'は種・定植前', notes:'粒剤。土壌混和処理。希釈不要。使用量は製品ラベルを確認' },
+      { id:'pdf33', name:'ブロフレアSC', category:'殺虫剤', method:'散布', dilMin:2000, dilMax:4000, dilStd:2000, spray:100, sprayUnit:'L', crops:'野菜類、果樹', timing:'発生初期', notes:'ブロフラニリド系。チョウ目・コウチュウ目害虫に有効' },
+      { id:'pdf34', name:'ミネクトディオ', category:'殺虫殺菌剤', method:'散布', dilMin:500, dilMax:1000, dilStd:1000, spray:150, sprayUnit:'L', crops:'野菜類、果樹', timing:'発生・発病初期', notes:'殺虫殺菌剤。使用前にラベルを確認してください' },
+    ];
+    const existing = loadPesticides();
+    const existingNames = new Set(existing.map(p => p.name));
+    const toAdd = items.filter(p => !existingNames.has(p.name));
+    if (toAdd.length > 0) {
+      savePesticides([...existing, ...toAdd]);
+      populateCalcSelect();
+    }
+  })();
 </script>
 </body>
 </html>
