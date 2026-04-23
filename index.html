@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="農薬計算">
+  <meta name="theme-color" content="#2d6a4f">
+  <title>農薬希釈計算アプリ</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-dark: #2d6a4f;
+      --green: #40916c;
+      --green-light: #74c69d;
+      --green-pale: #d8f3dc;
+      --green-bg: #f0faf3;
+      --amber: #e76f51;
+      --text: #1b2e24;
+      --text-muted: #6b7e73;
+      --border: #b7dfc4;
+      --white: #ffffff;
+      --shadow: 0 2px 8px rgba(45,106,79,.12);
+      --radius: 10px;
+      --bottom-nav-h: 64px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+      background: var(--green-bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--green-dark);
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.25);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    header .logo { font-size: 24px; }
+    header h1 { font-size: 17px; font-weight: 700; letter-spacing: .04em; }
+    header p { font-size: 11px; opacity: .75; }
+
+    /* ── PC Tabs ── */
+    .tabs {
+      display: flex;
+      background: var(--green-dark);
+      padding: 0 16px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,.65);
+      padding: 12px 22px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      border-bottom: 3px solid transparent;
+      transition: all .2s;
+      touch-action: manipulation;
+    }
+    .tab-btn.active { color: #fff; border-bottom-color: var(--green-light); }
+    .tab-btn:hover { color: #fff; }
+
+    /* ── Main ── */
+    main {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 20px 16px 72px;
+    }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--green-dark);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Form ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid .full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+    label span.req { color: var(--amber); margin-left: 3px; }
+
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      padding: 10px 12px;
+      font-size: 16px; /* 16px prevents iOS zoom on focus */
+      color: var(--text);
+      background: var(--white);
+      transition: border-color .2s, box-shadow .2s;
+      font-family: inherit;
+      min-height: 48px;
+      touch-action: manipulation;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7e73' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(64,145,108,.15);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+
+    .input-group { display: flex; gap: 8px; align-items: stretch; }
+    .input-group input { flex: 1; }
+    .input-group > select { flex-shrink: 0; width: auto; min-width: 72px; }
+    .input-group > span { display: flex; align-items: center; font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+
+    .range-row { display: grid; grid-template-columns: 1fr 24px 1fr; gap: 6px; align-items: center; }
+    .range-row .sep { text-align: center; color: var(--text-muted); font-size: 14px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 22px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all .18s;
+      font-family: inherit;
+      min-height: 48px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-primary { background: var(--green); color: #fff; }
+    .btn-primary:active { background: var(--green-dark); }
+    .btn-danger { background: #fdecea; color: #c0392b; }
+    .btn-danger:active { background: #f5c6c4; }
+    .btn-outline { background: transparent; border: 1.5px solid var(--green); color: var(--green); }
+    .btn-outline:active { background: var(--green-pale); }
+    .btn-sm { padding: 8px 14px; font-size: 13px; min-height: 40px; }
+
+    .form-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+
+    /* ── Calc tab ── */
+    .pesticide-select {
+      width: 100%;
+      padding: 12px 36px 12px 14px;
+      font-size: 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--white);
+      color: var(--text);
+      min-height: 52px;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7e73' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+    .pesticide-select:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(64,145,108,.15);
+    }
+
+    .selected-info {
+      background: var(--green-pale);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 12px;
+      display: none;
+    }
+    .selected-info.visible { display: block; }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      padding: 4px 0;
+    }
+    .info-row .label { color: var(--text-muted); }
+    .info-row .value { font-weight: 600; color: var(--green-dark); }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-殺虫剤 { background: #fef3cd; color: #856404; }
+    .badge-殺菌剤 { background: #d1ecf1; color: #0c5460; }
+    .badge-除草剤 { background: #d4edda; color: #155724; }
+    .badge-殺虫殺菌剤 { background: #e2d9f3; color: #4a2a8a; }
+    .badge-殺ダニ剤 { background: #ffd8d8; color: #7a1e1e; }
+    .badge-その他 { background: #e9ecef; color: #495057; }
+
+    /* ── Slider ── */
+    .slider-section { margin-top: 20px; }
+    .slider-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .slider-label-row .label { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+    .slider-label-row .val { font-size: 22px; font-weight: 800; color: var(--green-dark); }
+    .slider-label-row .val-unit { font-size: 13px; color: var(--text-muted); }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--green);
+      height: 8px;
+      cursor: pointer;
+      touch-action: none;
+    }
+    /* Larger thumb for mobile */
+    input[type="range"]::-webkit-slider-thumb { width: 28px; height: 28px; }
+    input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; }
+
+    .slider-minmax {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ── Result ── */
+    .result-box {
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 20px;
+      display: none;
+    }
+    .result-box.visible { display: block; }
+    .result-title { font-size: 13px; opacity: .8; margin-bottom: 14px; font-weight: 600; }
+    .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .result-item { text-align: center; }
+    .result-item .r-label { font-size: 11px; opacity: .8; margin-bottom: 4px; }
+    .result-item .r-value { font-size: 28px; font-weight: 800; line-height: 1; }
+    .result-item .r-unit { font-size: 12px; opacity: .75; margin-top: 2px; }
+    .result-note {
+      margin-top: 12px;
+      font-size: 12px;
+      opacity: .8;
+      border-top: 1px solid rgba(255,255,255,.25);
+      padding-top: 10px;
+      line-height: 1.5;
+    }
+
+    /* ── List ── */
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      align-items: stretch;
+    }
+    .search-bar input { flex: 1; }
+    .filter-select { width: auto; min-width: 0; flex-shrink: 0; }
+
+    .pest-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .pest-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .pest-card-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .pest-name { font-size: 16px; font-weight: 700; color: var(--green-dark); }
+    .pest-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 4px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .pest-details span strong { color: var(--text); }
+    .pest-actions { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+    .pest-notes { font-size: 13px; color: var(--text-muted); font-style: italic; }
+
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+    .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { margin-bottom: 16px; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 16px);
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--green-dark);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(0,0,0,.3);
+      transition: transform .3s ease;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--white);
+      border-radius: 18px 18px 0 0;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px 20px calc(24px + var(--safe-bottom));
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .modal-handle {
+      width: 40px;
+      height: 4px;
+      background: #ddd;
+      border-radius: 2px;
+      margin: 0 auto 18px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .modal-title { font-size: 17px; font-weight: 700; color: var(--green-dark); }
+    .modal-close {
+      background: #f0f0f0;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+
+    /* ── Bottom Nav (mobile) ── */
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(var(--bottom-nav-h) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: var(--white);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 12px rgba(45,106,79,.10);
+      z-index: 100;
+    }
+    .bottom-nav-inner {
+      display: flex;
+      height: var(--bottom-nav-h);
+    }
+    .bnav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      transition: color .15s;
+    }
+    .bnav-btn.active { color: var(--green-dark); }
+    .bnav-btn .bnav-icon { font-size: 22px; line-height: 1; }
+    .bnav-btn .bnav-label { font-size: 10px; font-weight: 600; }
+    .bnav-btn.active .bnav-label { color: var(--green-dark); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .tabs { display: none; }
+      .bottom-nav { display: block; }
+
+      main { padding: 14px 12px calc(var(--bottom-nav-h) + var(--safe-bottom) + 16px); }
+
+      .card { padding: 16px 14px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .full { grid-column: 1; }
+
+      label { font-size: 14px; }
+
+      .result-grid { grid-template-columns: 1fr 1fr; }
+      .result-item:last-child { grid-column: 1 / -1; }
+
+      .search-bar { flex-wrap: wrap; }
+      .search-bar input { min-width: 0; }
+      .filter-select { width: 100%; }
+
+      .pest-details { grid-template-columns: 1fr; }
+
+      .modal-overlay { align-items: flex-end; }
+      .modal { border-radius: 18px 18px 0 0; }
+    }
+
+    @media (min-width: 601px) {
+      .modal-overlay { align-items: center; padding: 16px; }
+      .modal { border-radius: var(--radius); max-height: 88vh; padding: 28px; }
+      .modal-handle { display: none; }
+      .toast { bottom: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🌿</div>
+  <div>
+    <h1>農薬希釈計算アプリ</h1>
+    <p>農薬の希釈倍率・必要量を簡単計算</p>
+  </div>
+</header>
+
+<!-- PC tabs -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('calc', this)">🧮 希釈計算</button>
+  <button class="tab-btn" onclick="switchTab('register', this)">➕ 農薬登録</button>
+  <button class="tab-btn" onclick="switchTab('list', this)">📋 農薬一覧</button>
+</div>
+
+<main>
+  <!-- 希釈計算 -->
+  <div id="tab-calc" class="tab-pane active">
+    <div class="card">
+      <div class="card-title"><span>🧪</span> 農薬を選択</div>
+      <label>農薬品名<span class="req">*</span></label>
+      <select class="pesticide-select" id="calc-select" onchange="onCalcSelectChange()">
+        <option value="">-- 農薬を選択してください --</option>
+      </select>
+
+      <div class="selected-info" id="selected-info">
+        <div class="info-row"><span class="label">分類</span><span class="value" id="info-category"></span></div>
+        <div class="info-row"><span class="label">希釈倍率</span><span class="value" id="info-dilution"></span></div>
+        <div class="info-row"><span class="label">散布量目安</span><span class="value" id="info-spray"></span></div>
+        <div class="info-row" id="info-crops-row"><span class="label">適用作物</span><span class="value" id="info-crops"></span></div>
+        <div class="info-row" id="info-timing-row"><span class="label">使用時期</span><span class="value" id="info-timing"></span></div>
+      </div>
+    </div>
+
+    <div class="card" id="calc-main-card" style="display:none">
+      <div class="card-title"><span>📐</span> 計算条件</div>
+
+      <div class="form-grid">
+        <div>
+          <label>散布面積<span class="req">*</span></label>
+          <div class="input-group">
+            <input type="number" id="calc-area" min="0" step="0.01" placeholder="0.00" inputmode="decimal" oninput="calculate()">
+            <select id="calc-area-unit" onchange="calculate()">
+              <option value="a">アール</option>
+              <option value="10a" selected>10a</option>
+              <option value="ha">ha</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label>散布液量（任意）</label>
+          <div class="input-group">
+            <input type="number" id="calc-spray-manual" min="0" step="1" placeholder="自動計算" inputmode="decimal" oninput="calculate()">
+            <span>L</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="slider-section" id="slider-section">
+        <div class="slider-label-row">
+          <span class="label">希釈倍率</span>
+          <span><span class="val" id="slider-val">1000</span><span class="val-unit"> 倍</span></span>
+        </div>
+        <input type="range" id="dilution-slider" min="1" max="10000" value="1000" step="1" oninput="onSliderInput()">
+        <div class="slider-minmax">
+          <span id="slider-min-label">最小</span>
+          <span id="slider-max-label">最大</span>
+        </div>
+      </div>
+
+      <div class="result-box" id="result-box">
+        <div class="result-title">💡 計算結果</div>
+        <div class="result-grid">
+          <div class="result-item">
+            <div class="r-label">散布液量</div>
+            <div class="r-value" id="res-spray">—</div>
+            <div class="r-unit">L</div>
+          </div>
+          <div class="result-item">
+            <div class="r-label">農薬原液量</div>
+            <div class="r-value" id="res-pesticide">—</div>
+            <div class="r-unit" id="res-pesticide-unit">mL</div>
+          </div>
+          <div class="result-item">
+            <div class="r-label">必要水量</div>
+            <div class="r-value" id="res-water">—</div>
+            <div class="r-unit">L</div>
+          </div>
+        </div>
+        <div class="result-note" id="res-note"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 農薬登録 -->
+  <div id="tab-register" class="tab-pane">
+    <div class="card">
+      <div class="card-title"><span>📝</span> 農薬情報の登録</div>
+
+      <div class="form-grid">
+        <div class="full">
+          <label>品名<span class="req">*</span></label>
+          <input type="text" id="reg-name" placeholder="例：スミチオン乳剤">
+        </div>
+        <div>
+          <label>分類<span class="req">*</span></label>
+          <select id="reg-category">
+            <option value="">選択してください</option>
+            <option value="殺虫剤">殺虫剤</option>
+            <option value="殺菌剤">殺菌剤</option>
+            <option value="除草剤">除草剤</option>
+            <option value="殺虫殺菌剤">殺虫殺菌剤</option>
+            <option value="殺ダニ剤">殺ダニ剤</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+        <div>
+          <label>使用方法</label>
+          <select id="reg-method">
+            <option value="散布">散布</option>
+            <option value="土壌散布">土壌散布</option>
+            <option value="茎葉散布">茎葉散布</option>
+            <option value="灌注">灌注</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+        <div class="full">
+          <label>希釈倍率（範囲）<span class="req">*</span></label>
+          <div class="range-row">
+            <input type="number" id="reg-dil-min" placeholder="最小（例：500）" min="1" step="1" inputmode="numeric">
+            <div class="sep">〜</div>
+            <input type="number" id="reg-dil-max" placeholder="最大（例：2000）" min="1" step="1" inputmode="numeric">
+          </div>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:5px">最小・最大が同じ場合は固定倍率として扱います</p>
+        </div>
+        <div>
+          <label>標準希釈倍率</label>
+          <div class="input-group">
+            <input type="number" id="reg-dil-std" placeholder="例：1000" min="1" step="1" inputmode="numeric">
+            <span>倍</span>
+          </div>
+        </div>
+        <div>
+          <label>散布量（10aあたり）<span class="req">*</span></label>
+          <div class="input-group">
+            <input type="number" id="reg-spray" placeholder="例：100" min="0" step="1" inputmode="decimal">
+            <select id="reg-spray-unit">
+              <option value="L">L</option>
+              <option value="mL">mL</option>
+            </select>
+          </div>
+        </div>
+        <div class="full">
+          <label>適用作物</label>
+          <input type="text" id="reg-crops" placeholder="例：稲、野菜類、果樹">
+        </div>
+        <div class="full">
+          <label>使用時期</label>
+          <input type="text" id="reg-timing" placeholder="例：発生初期、収穫前日まで">
+        </div>
+        <div class="full">
+          <label>備考・注意事項</label>
+          <textarea id="reg-notes" placeholder="希釈方法の注意点、保管方法など"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="savePesticide()">💾 登録する</button>
+        <button class="btn btn-outline" onclick="clearRegForm()">クリア</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 農薬一覧 -->
+  <div id="tab-list" class="tab-pane">
+    <div class="search-bar">
+      <input type="text" id="list-search" placeholder="🔍 品名・作物で検索..." oninput="renderList()">
+      <select class="filter-select" id="list-filter" onchange="renderList()">
+        <option value="">すべての分類</option>
+        <option value="殺虫剤">殺虫剤</option>
+        <option value="殺菌剤">殺菌剤</option>
+        <option value="除草剤">除草剤</option>
+        <option value="殺虫殺菌剤">殺虫殺菌剤</option>
+        <option value="殺ダニ剤">殺ダニ剤</option>
+        <option value="その他">その他</option>
+      </select>
+    </div>
+    <div class="pest-list" id="pest-list"></div>
+  </div>
+</main>
+
+<!-- Bottom Nav (mobile) -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="bnav-btn active" data-tab="calc" onclick="switchTabMobile('calc', this)">
+      <span class="bnav-icon">🧮</span>
+      <span class="bnav-label">希釈計算</span>
+    </button>
+    <button class="bnav-btn" data-tab="register" onclick="switchTabMobile('register', this)">
+      <span class="bnav-icon">➕</span>
+      <span class="bnav-label">農薬登録</span>
+    </button>
+    <button class="bnav-btn" data-tab="list" onclick="switchTabMobile('list', this)">
+      <span class="bnav-icon">📋</span>
+      <span class="bnav-label">農薬一覧</span>
+    </button>
+  </div>
+</nav>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">✏️ 農薬情報を編集</div>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+
+    <input type="hidden" id="edit-id">
+    <div class="form-grid">
+      <div class="full">
+        <label>品名<span class="req">*</span></label>
+        <input type="text" id="edit-name">
+      </div>
+      <div>
+        <label>分類<span class="req">*</span></label>
+        <select id="edit-category">
+          <option value="殺虫剤">殺虫剤</option>
+          <option value="殺菌剤">殺菌剤</option>
+          <option value="除草剤">除草剤</option>
+          <option value="殺虫殺菌剤">殺虫殺菌剤</option>
+          <option value="殺ダニ剤">殺ダニ剤</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div>
+        <label>使用方法</label>
+        <select id="edit-method">
+          <option value="散布">散布</option>
+          <option value="土壌散布">土壌散布</option>
+          <option value="茎葉散布">茎葉散布</option>
+          <option value="灌注">灌注</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="full">
+        <label>希釈倍率範囲</label>
+        <div class="range-row">
+          <input type="number" id="edit-dil-min" min="1" inputmode="numeric">
+          <div class="sep">〜</div>
+          <input type="number" id="edit-dil-max" min="1" inputmode="numeric">
+        </div>
+      </div>
+      <div>
+        <label>標準希釈倍率</label>
+        <div class="input-group">
+          <input type="number" id="edit-dil-std" min="1" inputmode="numeric">
+          <span>倍</span>
+        </div>
+      </div>
+      <div>
+        <label>散布量（10aあたり）</label>
+        <div class="input-group">
+          <input type="number" id="edit-spray" min="0" inputmode="decimal">
+          <select id="edit-spray-unit">
+            <option value="L">L</option>
+            <option value="mL">mL</option>
+          </select>
+        </div>
+      </div>
+      <div class="full">
+        <label>適用作物</label>
+        <input type="text" id="edit-crops">
+      </div>
+      <div class="full">
+        <label>使用時期</label>
+        <input type="text" id="edit-timing">
+      </div>
+      <div class="full">
+        <label>備考・注意事項</label>
+        <textarea id="edit-notes"></textarea>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="updatePesticide()">💾 更新する</button>
+      <button class="btn btn-outline" onclick="closeEditModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const STORAGE_KEY = 'nouyaku_app_v1';
+
+  function loadPesticides() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+  function savePesticides(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+
+  function showToast(msg, duration = 2400) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  function activateTab(name) {
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'calc') populateCalcSelect();
+    if (name === 'list') renderList();
+  }
+
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+    activateTab(name);
+  }
+
+  function switchTabMobile(name, btn) {
+    document.querySelectorAll('.bnav-btn').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+    activateTab(name);
+  }
+
+  function switchTabDirect(name) {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const idx = ['calc', 'register', 'list'].indexOf(name);
+    tabBtns.forEach(el => el.classList.remove('active'));
+    if (tabBtns[idx]) tabBtns[idx].classList.add('active');
+    document.querySelectorAll('.bnav-btn').forEach((el, i) => {
+      el.classList.toggle('active', i === idx);
+    });
+    activateTab(name);
+  }
+
+  // ── Calc ──
+  function populateCalcSelect() {
+    const sel = document.getElementById('calc-select');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">-- 農薬を選択してください --</option>';
+    loadPesticides().forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name + (p.category ? '（' + p.category + '）' : '');
+      sel.appendChild(opt);
+    });
+    if (current) sel.value = current;
+  }
+
+  function onCalcSelectChange() {
+    const id = document.getElementById('calc-select').value;
+    const info = document.getElementById('selected-info');
+    const card = document.getElementById('calc-main-card');
+
+    if (!id) { info.classList.remove('visible'); card.style.display = 'none'; return; }
+
+    const p = loadPesticides().find(x => x.id === id);
+    if (!p) return;
+
+    document.getElementById('info-category').innerHTML = `<span class="badge badge-${p.category}">${p.category}</span>`;
+    document.getElementById('info-dilution').textContent = p.dilMin === p.dilMax ? `${p.dilMin}倍` : `${p.dilMin}〜${p.dilMax}倍`;
+    const sprayL = p.sprayUnit === 'mL' ? (p.spray / 1000) : p.spray;
+    document.getElementById('info-spray').textContent = sprayL + ' L / 10a';
+
+    const cropsRow = document.getElementById('info-crops-row');
+    if (p.crops) { cropsRow.style.display = 'flex'; document.getElementById('info-crops').textContent = p.crops; }
+    else cropsRow.style.display = 'none';
+
+    const timingRow = document.getElementById('info-timing-row');
+    if (p.timing) { timingRow.style.display = 'flex'; document.getElementById('info-timing').textContent = p.timing; }
+    else timingRow.style.display = 'none';
+
+    info.classList.add('visible');
+    card.style.display = 'block';
+
+    const slider = document.getElementById('dilution-slider');
+    const min = p.dilMin || 1, max = p.dilMax || p.dilMin || 1000;
+    const std = p.dilStd || Math.round((min + max) / 2);
+    slider.min = min; slider.max = max;
+    slider.value = Math.min(Math.max(std, min), max);
+    document.getElementById('slider-min-label').textContent = min + '倍';
+    document.getElementById('slider-max-label').textContent = max + '倍';
+    document.getElementById('slider-val').textContent = slider.value;
+    document.getElementById('slider-section').style.display = (min === max) ? 'none' : 'block';
+
+    document.getElementById('result-box').classList.remove('visible');
+    calculate();
+  }
+
+  function onSliderInput() {
+    document.getElementById('slider-val').textContent = document.getElementById('dilution-slider').value;
+    calculate();
+  }
+
+  function calculate() {
+    const id = document.getElementById('calc-select').value;
+    if (!id) return;
+    const p = loadPesticides().find(x => x.id === id);
+    if (!p) return;
+
+    const area = parseFloat(document.getElementById('calc-area').value);
+    const areaUnit = document.getElementById('calc-area-unit').value;
+    const manualSpray = parseFloat(document.getElementById('calc-spray-manual').value);
+    const dilution = parseInt(document.getElementById('dilution-slider').value) || p.dilMin || 1000;
+
+    let area10a = NaN;
+    if (!isNaN(area)) {
+      if (areaUnit === 'a') area10a = area / 10;
+      else if (areaUnit === '10a') area10a = area;
+      else if (areaUnit === 'ha') area10a = area * 10;
+    }
+
+    const sprayPer10a = p.sprayUnit === 'mL' ? (p.spray / 1000) : p.spray;
+    let sprayL = NaN;
+    if (!isNaN(manualSpray) && manualSpray > 0) sprayL = manualSpray;
+    else if (!isNaN(area10a) && area10a > 0 && sprayPer10a > 0) sprayL = area10a * sprayPer10a;
+
+    if (isNaN(sprayL) || sprayL <= 0) { document.getElementById('result-box').classList.remove('visible'); return; }
+
+    const pesticideMl = (sprayL / dilution) * 1000;
+    const waterL = sprayL - pesticideMl / 1000;
+    const fmt = n => n >= 10 ? Math.round(n * 10) / 10 : Math.round(n * 100) / 100;
+
+    document.getElementById('res-spray').textContent = fmt(sprayL);
+    if (pesticideMl >= 1000) {
+      document.getElementById('res-pesticide').textContent = fmt(pesticideMl / 1000);
+      document.getElementById('res-pesticide-unit').textContent = 'L';
+    } else {
+      document.getElementById('res-pesticide').textContent = fmt(pesticideMl);
+      document.getElementById('res-pesticide-unit').textContent = 'mL';
+    }
+    document.getElementById('res-water').textContent = fmt(Math.max(0, waterL));
+
+    let note = `${p.name} を ${dilution}倍希釈`;
+    if (!isNaN(area10a)) note += `（面積 ${area}${areaUnit}）`;
+    if (p.notes) note += `　⚠️ ${p.notes}`;
+    document.getElementById('res-note').textContent = note;
+    document.getElementById('result-box').classList.add('visible');
+  }
+
+  // ── Register ──
+  function savePesticide() {
+    const name = document.getElementById('reg-name').value.trim();
+    const category = document.getElementById('reg-category').value;
+    const dilMin = parseInt(document.getElementById('reg-dil-min').value);
+    const dilMax = parseInt(document.getElementById('reg-dil-max').value);
+    const spray = parseFloat(document.getElementById('reg-spray').value);
+
+    if (!name) { showToast('⚠️ 品名を入力してください'); return; }
+    if (!category) { showToast('⚠️ 分類を選択してください'); return; }
+    if (!dilMin || isNaN(dilMin)) { showToast('⚠️ 希釈倍率（最小）を入力してください'); return; }
+    if (!dilMax || isNaN(dilMax)) { showToast('⚠️ 希釈倍率（最大）を入力してください'); return; }
+    if (dilMin > dilMax) { showToast('⚠️ 最小倍率は最大倍率以下にしてください'); return; }
+    if (!spray || isNaN(spray)) { showToast('⚠️ 散布量を入力してください'); return; }
+
+    const list = loadPesticides();
+    list.push({
+      id: Date.now().toString(), name, category,
+      method: document.getElementById('reg-method').value,
+      dilMin, dilMax,
+      dilStd: parseInt(document.getElementById('reg-dil-std').value) || Math.round((dilMin + dilMax) / 2),
+      spray, sprayUnit: document.getElementById('reg-spray-unit').value,
+      crops: document.getElementById('reg-crops').value.trim(),
+      timing: document.getElementById('reg-timing').value.trim(),
+      notes: document.getElementById('reg-notes').value.trim(),
+    });
+    savePesticides(list);
+    showToast('✅ 「' + name + '」を登録しました');
+    clearRegForm();
+  }
+
+  function clearRegForm() {
+    ['reg-name','reg-dil-min','reg-dil-max','reg-dil-std','reg-spray','reg-crops','reg-timing','reg-notes']
+      .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('reg-category').value = '';
+    document.getElementById('reg-method').value = '散布';
+    document.getElementById('reg-spray-unit').value = 'L';
+  }
+
+  // ── List ──
+  function renderList() {
+    const search = (document.getElementById('list-search').value || '').toLowerCase();
+    const filter = document.getElementById('list-filter').value;
+    let list = loadPesticides();
+    if (filter) list = list.filter(p => p.category === filter);
+    if (search) list = list.filter(p =>
+      p.name.toLowerCase().includes(search) || (p.crops && p.crops.toLowerCase().includes(search))
+    );
+
+    const container = document.getElementById('pest-list');
+    if (list.length === 0) {
+      container.innerHTML = `<div class="empty-state"><div class="emoji">🌱</div><p>農薬が登録されていません</p><button class="btn btn-primary" onclick="switchTabDirect('register')">➕ 農薬を登録する</button></div>`;
+      return;
+    }
+    container.innerHTML = list.map(p => {
+      const dilText = p.dilMin === p.dilMax ? `${p.dilMin}倍` : `${p.dilMin}〜${p.dilMax}倍`;
+      const sprayL = p.sprayUnit === 'mL' ? (p.spray / 1000) + ' L' : p.spray + ' L';
+      return `<div class="pest-card">
+        <div class="pest-card-header">
+          <span class="pest-name">${escHtml(p.name)}</span>
+          <span class="badge badge-${p.category}">${p.category}</span>
+          ${p.method ? `<span style="font-size:12px;color:var(--text-muted)">${p.method}</span>` : ''}
+        </div>
+        <div class="pest-details">
+          <span>希釈倍率：<strong>${dilText}</strong></span>
+          <span>散布量：<strong>${sprayL} / 10a</strong></span>
+          ${p.crops ? `<span>適用作物：<strong>${escHtml(p.crops)}</strong></span>` : ''}
+          ${p.timing ? `<span>使用時期：<strong>${escHtml(p.timing)}</strong></span>` : ''}
+        </div>
+        ${p.notes ? `<div class="pest-notes">📌 ${escHtml(p.notes)}</div>` : ''}
+        <div class="pest-actions">
+          <button class="btn btn-outline btn-sm" onclick="openEditModal('${p.id}')">✏️ 編集</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePesticide('${p.id}', '${escHtml(p.name)}')">🗑 削除</button>
+          <button class="btn btn-sm" style="background:var(--green-pale);color:var(--green-dark)" onclick="calcThis('${p.id}')">🧮 計算</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function escHtml(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function deletePesticide(id, name) {
+    if (!confirm(`「${name}」を削除しますか？`)) return;
+    savePesticides(loadPesticides().filter(p => p.id !== id));
+    renderList();
+    showToast('🗑 削除しました');
+  }
+
+  function calcThis(id) {
+    switchTabDirect('calc');
+    populateCalcSelect();
+    document.getElementById('calc-select').value = id;
+    onCalcSelectChange();
+  }
+
+  // ── Modal ──
+  function openEditModal(id) {
+    const p = loadPesticides().find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('edit-id').value = p.id;
+    document.getElementById('edit-name').value = p.name;
+    document.getElementById('edit-category').value = p.category;
+    document.getElementById('edit-method').value = p.method || '散布';
+    document.getElementById('edit-dil-min').value = p.dilMin;
+    document.getElementById('edit-dil-max').value = p.dilMax;
+    document.getElementById('edit-dil-std').value = p.dilStd || '';
+    document.getElementById('edit-spray').value = p.spray;
+    document.getElementById('edit-spray-unit').value = p.sprayUnit || 'L';
+    document.getElementById('edit-crops').value = p.crops || '';
+    document.getElementById('edit-timing').value = p.timing || '';
+    document.getElementById('edit-notes').value = p.notes || '';
+    document.getElementById('edit-modal').classList.add('open');
+  }
+
+  function closeEditModal() { document.getElementById('edit-modal').classList.remove('open'); }
+
+  function updatePesticide() {
+    const id = document.getElementById('edit-id').value;
+    const name = document.getElementById('edit-name').value.trim();
+    const category = document.getElementById('edit-category').value;
+    const dilMin = parseInt(document.getElementById('edit-dil-min').value);
+    const dilMax = parseInt(document.getElementById('edit-dil-max').value);
+    const spray = parseFloat(document.getElementById('edit-spray').value);
+
+    if (!name || !category || !dilMin || !dilMax || isNaN(spray)) {
+      showToast('⚠️ 必須項目を入力してください'); return;
+    }
+    const list = loadPesticides();
+    const idx = list.findIndex(x => x.id === id);
+    if (idx < 0) return;
+    list[idx] = {
+      ...list[idx], name, category,
+      method: document.getElementById('edit-method').value,
+      dilMin, dilMax,
+      dilStd: parseInt(document.getElementById('edit-dil-std').value) || Math.round((dilMin+dilMax)/2),
+      spray, sprayUnit: document.getElementById('edit-spray-unit').value,
+      crops: document.getElementById('edit-crops').value.trim(),
+      timing: document.getElementById('edit-timing').value.trim(),
+      notes: document.getElementById('edit-notes').value.trim(),
+    };
+    savePesticides(list);
+    closeEditModal();
+    renderList();
+    showToast('✅ 更新しました');
+  }
+
+  document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+  });
+
+  // ── Init ──
+  populateCalcSelect();
+
+  if (loadPesticides().length === 0) {
+    savePesticides([
+      { id:'s1', name:'スミチオン乳剤', category:'殺虫剤', method:'散布', dilMin:500, dilMax:1000, dilStd:1000, spray:100, sprayUnit:'L', crops:'稲、野菜類、果樹', timing:'発生初期', notes:'蜜蜂に影響があるため開花期の散布は避けること' },
+      { id:'s2', name:'ダコニール1000', category:'殺菌剤', method:'散布', dilMin:1000, dilMax:1000, dilStd:1000, spray:100, sprayUnit:'L', crops:'キュウリ、トマト、稲', timing:'発病初期から7〜10日ごと', notes:'' },
+      { id:'s3', name:'ラウンドアップマックスロード', category:'除草剤', method:'茎葉散布', dilMin:50, dilMax:100, dilStd:67, spray:100, sprayUnit:'L', crops:'畑地・非農耕地', timing:'雑草生育期', notes:'非選択性除草剤。作物への飛散注意' },
+    ]);
+    populateCalcSelect();
+  }
+</script>
+</body>
+</html>
