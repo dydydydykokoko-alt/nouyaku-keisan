@@ -435,6 +435,48 @@
     .bnav-btn .bnav-label { font-size: 10px; font-weight: 600; }
     .bnav-btn.active .bnav-label { color: var(--green-dark); }
 
+    /* ── Mode Toggle ── */
+    .mode-toggle {
+      display: flex;
+      background: var(--green-pale);
+      border-radius: 8px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 18px;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 10px 8px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      font-family: inherit;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      line-height: 1.3;
+    }
+    .mode-btn.active {
+      background: var(--white);
+      color: var(--green-dark);
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
+    }
+
+    /* ── Manual Input Form ── */
+    #manual-section { display: none; }
+    #manual-section.visible { display: block; }
+    .manual-dil-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+      margin-bottom: 14px;
+    }
+    .manual-dil-row input { flex: 1; }
+
     /* ── Responsive ── */
     @media (max-width: 600px) {
       .tabs { display: none; }
@@ -489,22 +531,75 @@
 <main>
   <!-- 希釈計算 -->
   <div id="tab-calc" class="tab-pane active">
-    <div class="card">
-      <div class="card-title"><span>🧪</span> 農薬を選択</div>
-      <label>農薬品名<span class="req">*</span></label>
-      <select class="pesticide-select" id="calc-select" onchange="onCalcSelectChange()">
-        <option value="">-- 農薬を選択してください --</option>
-      </select>
 
-      <div class="selected-info" id="selected-info">
-        <div class="info-row"><span class="label">分類</span><span class="value" id="info-category"></span></div>
-        <div class="info-row"><span class="label">希釈倍率</span><span class="value" id="info-dilution"></span></div>
-        <div class="info-row"><span class="label">散布量目安</span><span class="value" id="info-spray"></span></div>
-        <div class="info-row" id="info-crops-row"><span class="label">適用作物</span><span class="value" id="info-crops"></span></div>
-        <div class="info-row" id="info-timing-row"><span class="label">使用時期</span><span class="value" id="info-timing"></span></div>
+    <!-- モード切替 -->
+    <div class="card" style="padding-bottom:14px">
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="mode-btn-registered" onclick="setCalcMode('registered')">
+          📋 登録農薬から選ぶ
+        </button>
+        <button class="mode-btn" id="mode-btn-manual" onclick="setCalcMode('manual')">
+          ✍️ 直接入力
+        </button>
+      </div>
+
+      <!-- 登録農薬モード -->
+      <div id="registered-section">
+        <label>農薬品名<span class="req">*</span></label>
+        <select class="pesticide-select" id="calc-select" onchange="onCalcSelectChange()">
+          <option value="">-- 農薬を選択してください --</option>
+        </select>
+        <div class="selected-info" id="selected-info">
+          <div class="info-row"><span class="label">分類</span><span class="value" id="info-category"></span></div>
+          <div class="info-row"><span class="label">希釈倍率</span><span class="value" id="info-dilution"></span></div>
+          <div class="info-row"><span class="label">散布量目安</span><span class="value" id="info-spray"></span></div>
+          <div class="info-row" id="info-crops-row"><span class="label">適用作物</span><span class="value" id="info-crops"></span></div>
+          <div class="info-row" id="info-timing-row"><span class="label">使用時期</span><span class="value" id="info-timing"></span></div>
+        </div>
+      </div>
+
+      <!-- 直接入力モード -->
+      <div id="manual-section">
+        <div class="form-grid">
+          <div class="full">
+            <label>品名（任意）</label>
+            <input type="text" id="manual-name" placeholder="例：未登録農薬・試験品など">
+          </div>
+          <div class="full">
+            <label>希釈倍率<span class="req">*</span></label>
+            <div class="input-group">
+              <input type="number" id="manual-dil" min="1" step="1" placeholder="例：1000" inputmode="numeric" oninput="calculate()">
+              <span>倍</span>
+            </div>
+          </div>
+          <div>
+            <label>散布量（10aあたり）</label>
+            <div class="input-group">
+              <input type="number" id="manual-spray-std" min="0" step="1" placeholder="例：100" inputmode="decimal" oninput="calculate()">
+              <select id="manual-spray-unit" onchange="calculate()">
+                <option value="L">L</option>
+                <option value="mL">mL</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label>分類（任意）</label>
+            <select id="manual-category">
+              <option value="">未選択</option>
+              <option value="殺虫剤">殺虫剤</option>
+              <option value="殺菌剤">殺菌剤</option>
+              <option value="除草剤">除草剤</option>
+              <option value="殺虫殺菌剤">殺虫殺菌剤</option>
+              <option value="殺ダニ剤">殺ダニ剤</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:10px">💡 散布量を入力すると面積から自動計算できます。未入力の場合は散布液量を直接入力してください。</p>
       </div>
     </div>
 
+    <!-- 計算条件カード（両モード共通） -->
     <div class="card" id="calc-main-card" style="display:none">
       <div class="card-title"><span>📐</span> 計算条件</div>
 
@@ -529,6 +624,7 @@
         </div>
       </div>
 
+      <!-- 登録農薬モード：希釈倍率スライダー -->
       <div class="slider-section" id="slider-section">
         <div class="slider-label-row">
           <span class="label">希釈倍率</span>
@@ -766,12 +862,38 @@
 
 <script>
   const STORAGE_KEY = 'nouyaku_app_v1';
+  let calcMode = 'registered'; // 'registered' | 'manual'
 
   function loadPesticides() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
     catch { return []; }
   }
   function savePesticides(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+
+  // ── モード切替 ──
+  function setCalcMode(mode) {
+    calcMode = mode;
+    document.getElementById('mode-btn-registered').classList.toggle('active', mode === 'registered');
+    document.getElementById('mode-btn-manual').classList.toggle('active', mode === 'manual');
+    document.getElementById('registered-section').style.display = mode === 'registered' ? 'block' : 'none';
+    document.getElementById('manual-section').classList.toggle('visible', mode === 'manual');
+
+    if (mode === 'registered') {
+      const id = document.getElementById('calc-select').value;
+      if (id) {
+        onCalcSelectChange();
+      } else {
+        document.getElementById('calc-main-card').style.display = 'none';
+        document.getElementById('result-box').classList.remove('visible');
+      }
+    } else {
+      // 直接入力モード：計算カードを常に表示
+      document.getElementById('calc-main-card').style.display = 'block';
+      document.getElementById('slider-section').style.display = 'none';
+      document.getElementById('selected-info').classList.remove('visible');
+      calculate();
+    }
+  }
 
   function showToast(msg, duration = 2400) {
     const t = document.getElementById('toast');
@@ -870,32 +992,62 @@
   }
 
   function calculate() {
-    const id = document.getElementById('calc-select').value;
-    if (!id) return;
-    const p = loadPesticides().find(x => x.id === id);
-    if (!p) return;
+    const area       = parseFloat(document.getElementById('calc-area').value);
+    const areaUnit   = document.getElementById('calc-area-unit').value;
+    const sprayOver  = parseFloat(document.getElementById('calc-spray-manual').value);
 
-    const area = parseFloat(document.getElementById('calc-area').value);
-    const areaUnit = document.getElementById('calc-area-unit').value;
-    const manualSpray = parseFloat(document.getElementById('calc-spray-manual').value);
-    const dilution = parseInt(document.getElementById('dilution-slider').value) || p.dilMin || 1000;
+    let dilution, sprayPer10aL, labelName, notesText;
 
-    let area10a = NaN;
-    if (!isNaN(area)) {
-      if (areaUnit === 'a') area10a = area / 10;
-      else if (areaUnit === '10a') area10a = area;
-      else if (areaUnit === 'ha') area10a = area * 10;
+    if (calcMode === 'registered') {
+      const id = document.getElementById('calc-select').value;
+      if (!id) return;
+      const p = loadPesticides().find(x => x.id === id);
+      if (!p) return;
+      dilution     = parseInt(document.getElementById('dilution-slider').value) || p.dilMin || 1000;
+      sprayPer10aL = p.sprayUnit === 'mL' ? p.spray / 1000 : p.spray;
+      labelName    = p.name;
+      notesText    = p.notes;
+    } else {
+      // 直接入力モード
+      dilution = parseInt(document.getElementById('manual-dil').value);
+      if (!dilution || dilution <= 0) {
+        document.getElementById('result-box').classList.remove('visible');
+        return;
+      }
+      const stdVal  = parseFloat(document.getElementById('manual-spray-std').value);
+      const stdUnit = document.getElementById('manual-spray-unit').value;
+      sprayPer10aL  = (!isNaN(stdVal) && stdVal > 0)
+        ? (stdUnit === 'mL' ? stdVal / 1000 : stdVal)
+        : NaN;
+      const cat  = document.getElementById('manual-category').value;
+      const nm   = document.getElementById('manual-name').value.trim();
+      labelName  = nm || (cat ? cat : '農薬（直接入力）');
+      notesText  = '';
     }
 
-    const sprayPer10a = p.sprayUnit === 'mL' ? (p.spray / 1000) : p.spray;
-    let sprayL = NaN;
-    if (!isNaN(manualSpray) && manualSpray > 0) sprayL = manualSpray;
-    else if (!isNaN(area10a) && area10a > 0 && sprayPer10a > 0) sprayL = area10a * sprayPer10a;
+    // 面積 → 10a 換算
+    let area10a = NaN;
+    if (!isNaN(area)) {
+      if (areaUnit === 'a')   area10a = area / 10;
+      else if (areaUnit === '10a') area10a = area;
+      else if (areaUnit === 'ha')  area10a = area * 10;
+    }
 
-    if (isNaN(sprayL) || sprayL <= 0) { document.getElementById('result-box').classList.remove('visible'); return; }
+    // 散布液量の決定
+    let sprayL = NaN;
+    if (!isNaN(sprayOver) && sprayOver > 0) {
+      sprayL = sprayOver;
+    } else if (!isNaN(area10a) && area10a > 0 && !isNaN(sprayPer10aL) && sprayPer10aL > 0) {
+      sprayL = area10a * sprayPer10aL;
+    }
+
+    if (isNaN(sprayL) || sprayL <= 0) {
+      document.getElementById('result-box').classList.remove('visible');
+      return;
+    }
 
     const pesticideMl = (sprayL / dilution) * 1000;
-    const waterL = sprayL - pesticideMl / 1000;
+    const waterL      = sprayL - pesticideMl / 1000;
     const fmt = n => n >= 10 ? Math.round(n * 10) / 10 : Math.round(n * 100) / 100;
 
     document.getElementById('res-spray').textContent = fmt(sprayL);
@@ -908,9 +1060,9 @@
     }
     document.getElementById('res-water').textContent = fmt(Math.max(0, waterL));
 
-    let note = `${p.name} を ${dilution}倍希釈`;
+    let note = `${labelName} を ${dilution}倍希釈`;
     if (!isNaN(area10a)) note += `（面積 ${area}${areaUnit}）`;
-    if (p.notes) note += `　⚠️ ${p.notes}`;
+    if (notesText) note += `　⚠️ ${notesText}`;
     document.getElementById('res-note').textContent = note;
     document.getElementById('result-box').classList.add('visible');
   }
